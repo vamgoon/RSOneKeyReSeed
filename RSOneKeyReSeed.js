@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         RSUploader
+// @name         RSOneKeyReSeed
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      1.1beta
 // @description  try to take over the world!
 // @author       Vamgoon
 // @match        http://rs.xidian.edu.cn/forum.php?mod=post&action=newthread&fid=*&specialextra=bt&cid=*
