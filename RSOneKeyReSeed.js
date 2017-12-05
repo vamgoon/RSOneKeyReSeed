@@ -247,7 +247,8 @@
               var bgImg = oDiv.querySelector('.pcbs').firstElementChild;
               if (bgImg.nodeName.toUpperCase() === 'STYLE') {
                 bgImg.innerHTML = bgImg.innerHTML.replace(/\#pid\d+/gi, 'body');
-                document.querySelector('#e_iframe').contentWindow.document.querySelector('body').appendChild(bgImg);
+                bgImg.setAttribute('name', 'editorpostbg');
+                document.querySelector('#e_iframe').contentWindow.document.querySelector('body').insertAdjacentHTML('afterbegin', bgImg.outerHTML);
               }
             });
             break;
