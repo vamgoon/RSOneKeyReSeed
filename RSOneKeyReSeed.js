@@ -35,9 +35,11 @@
           case 'torrent':
             break;
           case 'img':
-            imgObjJsonArr.push(objJson);
-            if (imgObjJsonArr.length === objJson.length) {
+            if (imgObjJsonArr.length < objJson.length) {
+              imgObjJsonArr.push(objJson);
+            } else {
               console.log(imgObjJsonArr);
+            }
             break;
         }
       });
@@ -235,7 +237,9 @@
                 oDiv.querySelector('td.t_f').querySelector('.blockcode').innerHTML = oDiv.querySelector('td.t_f').querySelector('.blockcode').innerHTML.replace(/\n\n/gi, '\n');
               }
               document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerHTML = oDiv.querySelector('td.t_f').innerHTML;
-              document.querySelector('#subject').value = oDiv.querySelector('title').innerText.split(' -')[0] + '[From:一键转种脚本V1.1Beta版]';
+              var subjectFinalValue = oDiv.querySelector('title').innerText.split(' -')[0];
+              document.querySelector('#subject').value = subjectFinalValue.indexOf('一键转种脚本') === -1 ? subjectFinalValue + '[From:一键转种脚本V1.1Beta版]' : subjectFinalValue;
+
 
               analyzeSubjectValueRS();
 
@@ -326,7 +330,7 @@
             content: subInfo
           };
           window.parent.postMessage(JSON.stringify(objSubInfo), 'http://rs.xidian.edu.cn');
-
+          
           //获取图片信息
           var imgDomInfos = $('img', '#kdescr');
           var imgDomLen = imgDomInfos.length;
@@ -349,8 +353,8 @@
                       blob: this.response
                     }
                   };
-                  window.parent.postMessage(JSON.stringify(sendImgObj), 'http://rs.xidian.edu.cn');
-
+                  window.parent.postMessage(JSON.stringify(sendImgObj), 'http://rs.xidian.edu.cn'); 
+                  
                 }
               };
               xhr.send();
