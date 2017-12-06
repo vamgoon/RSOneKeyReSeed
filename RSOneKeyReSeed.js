@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RSOneKeyReSeed
 // @namespace    http://tampermonkey.net/
-// @version      1.1beta
+// @version      1.1
 // @description  try to take over the world!
 // @author       Vamgoon
 // @match        http://rs.xidian.edu.cn/forum.php?mod=post&action=newthread&fid=*&specialextra=bt&cid=*
@@ -19,14 +19,18 @@
 (function() {
   switch (document.domain)  {
     case 'rs.xidian.edu.cn':
+
+
       var supportDomainArr = ['rs.xidian.edu.cn', 'bt.byr.cn'];//支持的domain
+      var myUid = $('input[name="uid"]').val();
+      var myHash = $('input[name="hash"]').val();
       var imgObjJsonArr = [];
       //监听跨域iframe使用postMessage发出的信息
       window.addEventListener('message', function(ee){
-        var objJson = JSON.parse(ee.data);
+        var objJson = typeof ee.data === 'string' ? JSON.parse(ee.data) : ee.data;
         switch (objJson.type) {
           case 'text':
-            document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerText = objJson.content;
+            document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerHTML = objJson.content;
             break;
           case 'title':
             document.querySelector('#subject').value = handleBYRTitle(objJson.content);
@@ -35,10 +39,71 @@
           case 'torrent':
             break;
           case 'img':
-            if (imgObjJsonArr.length < objJson.length) {
-              imgObjJsonArr.push(objJson);
-            } else {
-              console.log(imgObjJsonArr);
+            var imgUploadResult = {};
+            imgObjJsonArr.push(objJson);
+            if (imgObjJsonArr.length === objJson.length) {
+              var imgDomLen = imgObjJsonArr.length;
+              var myIndex = 0;
+              for (; myIndex < imgDomLen; myIndex++) {
+                (function (x) {
+                  //new window.File(msgArr, 'test.torrent', {type: msgArr[0].type});
+
+                  var fd = new FormData();
+                  fd.append('uid', myUid);
+                  fd.append('hash', myHash);
+                  fd.append('Filedata', new window.File([imgObjJsonArr[x].content.blob], imgObjJsonArr[x].content.name, {type: imgObjJsonArr[x].content.blob.type}));
+                  $.ajax({
+                    type: 'POST',
+                    url: 'http://rs.xidian.edu.cn/misc.php?mod=swfupload&operation=upload&simple=1&type=image',
+                    data: fd,
+                    processData: false, // 不会将 data 参数序列化字符串
+                    contentType: false, // 根据表单 input 提交的数据使用其默认的 contentType
+                    xhr: function() {
+                      var xhr = new window.XMLHttpRequest();
+                      xhr.upload.addEventListener("progress", function(evt) {
+                        if (evt.lengthComputable) {
+                          var percentComplete = evt.loaded / evt.total;
+                          console.log(imgObjJsonArr[x].content.order + '进度', percentComplete);
+                        }
+                      }, false);
+
+                      return xhr;
+                    }
+                  }).success(function (res) {
+                    // 拿到提交的结果
+                    imgUploadResult[imgObjJsonArr[x].content.order] = res.split('|')[2];
+                    if (imgUploadResult.hasOwnProperty(objJson.length)) {
+                      console.log(imgUploadResult);
+                      handleImgULResult(imgUploadResult);
+                    }
+                  }).error(function (err) {
+                    console.error(err);
+                  });
+                })(myIndex);
+              }
+
+
+              function handleImgULResult(imgUploadResult) {
+                $.get('http://rs.xidian.edu.cn/forum.php?mod=ajax&action=imagelist&type=single&pid=0&fid=13&inajax=1', function (data) {
+                  var objAidSrc = {};
+                  var imgRSArr = data.toString().match(/<img src="forum.php\?mod=image&aid=\d+&size=\d+x\d+&key=\w+&nocache=yes&type=fixnone"\sid="image_\d+"\sonclick="insertAttachimgTag('\d+');doane(event);"\swidth="\d+"\scwidth="\d+"\s\/>/gi);
+                  var resXMLText = data.getElementsByTagName('root')[0].innerHTML;
+                  var resHTMLText = resXMLText.slice(resXMLText.indexOf('<![CDATA[') + 9, resXMLText.indexOf(']]>'));
+                  var tempDom = document.createElement('div');
+                  tempDom.innerHTML = resHTMLText;
+                  var imgTags = $('img', tempDom);
+                  for (var i = 0; i < imgTags.length; i++) {
+                    objAidSrc[(imgTags[i].getAttribute('id')).split('_')[1]] = imgTags[i].src;
+                  }
+
+                  var tempImgs = document.querySelector('#e_iframe').contentWindow.document.querySelector('body').querySelectorAll('img');
+                  for (var i = 0; i < tempImgs.length; i++) {
+                    tempImgs[i].src = objAidSrc[imgUploadResult[i]];
+                  }
+
+                });
+              }
+
             }
             break;
         }
@@ -269,37 +334,7 @@
             break;
         }
 
-        //new window.File(msgArr, 'test.torrent', {type: msgArr[0].type});
 
-        //return;
-        /*
-                var fd = new FormData();
-                fd.append('uid', 276932);
-                fd.append('hash', 'acff577714c0b41bf7d61dd5ec7a409a');
-                fd.append('Filedata', new window.File(msgArr, 'test.torrent', {type: msgArr[0].type}));
-                $.ajax({
-            type: 'POST',
-            url: 'http://rs.xidian.edu.cn/misc.php?mod=swfupload&operation=upload&simple=1&type=image',
-            data: fd,
-            processData: false, // 不会将 data 参数序列化字符串
-            contentType: false, // 根据表单 input 提交的数据使用其默认的 contentType
-            xhr: function() {
-                var xhr = new window.XMLHttpRequest();
-                xhr.upload.addEventListener("progress", function(evt) {
-                    if (evt.lengthComputable) {
-                        var percentComplete = evt.loaded / evt.total;
-                        console.log('进度', percentComplete);
-                    }
-                }, false);
-
-                return xhr;
-            }
-        }).success(function (res) {
-            // 拿到提交的结果
-                    console.log(res);
-        }).error(function (err) {
-            console.error(err);
-        });*/
 
 
 
@@ -317,7 +352,7 @@
 
 
           //获取文字信息，并将img标签标记为'tagimgisnecessary',跨域发送至主页。
-          var hanledTextMsg = $('#kdescr').html($('#kdescr').html().replace(/<img/gi, 'tagimgisnecessary<img')).text().trim();
+          var hanledTextMsg = $('#kdescr').html();
           var objText = {
             type: 'text',
             content: hanledTextMsg
@@ -331,7 +366,7 @@
             content: subInfo
           };
           window.parent.postMessage(JSON.stringify(objSubInfo), 'http://rs.xidian.edu.cn');
-          
+
           //获取图片信息
           var imgDomInfos = $('img', '#kdescr');
           var imgDomLen = imgDomInfos.length;
@@ -354,8 +389,8 @@
                       blob: this.response
                     }
                   };
-                  window.parent.postMessage(JSON.stringify(sendImgObj), 'http://rs.xidian.edu.cn'); 
-                  
+                  window.parent.postMessage(sendImgObj, 'http://rs.xidian.edu.cn');
+
                 }
               };
               xhr.send();
