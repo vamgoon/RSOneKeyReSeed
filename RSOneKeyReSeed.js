@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         RSOneKeyReSeed
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2beta
 // @description  try to take over the world!
 // @author       Vamgoon
 // @match        http://rs.xidian.edu.cn/forum.php?mod=post&action=newthread&fid=*&specialextra=bt&cid=*
@@ -72,8 +72,9 @@
                   }).success(function (res) {
                     // 拿到提交的结果
                     imgUploadResult[imgObjJsonArr[x].content.order] = res.split('|')[2];
-                    if (imgUploadResult.hasOwnProperty(objJson.length)) {
-                      console.log(imgUploadResult);
+
+
+                    if (imgUploadResult.hasOwnProperty(objJson.length - 1)) {
                       handleImgULResult(imgUploadResult);
                     }
                   }).error(function (err) {
@@ -81,29 +82,6 @@
                   });
                 })(myIndex);
               }
-
-
-              function handleImgULResult(imgUploadResult) {
-                $.get('http://rs.xidian.edu.cn/forum.php?mod=ajax&action=imagelist&type=single&pid=0&fid=13&inajax=1', function (data) {
-                  var objAidSrc = {};
-                  var imgRSArr = data.toString().match(/<img src="forum.php\?mod=image&aid=\d+&size=\d+x\d+&key=\w+&nocache=yes&type=fixnone"\sid="image_\d+"\sonclick="insertAttachimgTag('\d+');doane(event);"\swidth="\d+"\scwidth="\d+"\s\/>/gi);
-                  var resXMLText = data.getElementsByTagName('root')[0].innerHTML;
-                  var resHTMLText = resXMLText.slice(resXMLText.indexOf('<![CDATA[') + 9, resXMLText.indexOf(']]>'));
-                  var tempDom = document.createElement('div');
-                  tempDom.innerHTML = resHTMLText;
-                  var imgTags = $('img', tempDom);
-                  for (var i = 0; i < imgTags.length; i++) {
-                    objAidSrc[(imgTags[i].getAttribute('id')).split('_')[1]] = imgTags[i].src;
-                  }
-
-                  var tempImgs = document.querySelector('#e_iframe').contentWindow.document.querySelector('body').querySelectorAll('img');
-                  for (var i = 0; i < tempImgs.length; i++) {
-                    tempImgs[i].src = objAidSrc[imgUploadResult[i]];
-                  }
-
-                });
-              }
-
             }
             break;
         }
@@ -318,7 +296,7 @@
             });
             break;
           case 'bt.byr.cn':
-            showDialog('正在获取"' + oneKeyInputUrl + '"中的内容', 'notice', null, null, null, null, null, null, null, 2, null);
+            showDialog('正在获取"' + oneKeyInputUrl + '"中的内容', 'notice', null, null, null, null, null, null, null, 1, null);
 
             //iframe跨域获取html
             var ifr = document.createElement('iframe');
@@ -327,7 +305,7 @@
             document.querySelector('#myNoneDisplayDiv').appendChild(ifr);
 
             $('#myIframe')[0].onload = function () {
-              showDialog('获取"' + oneKeyInputUrl + '"完毕，正在处理种子文件及图片。', 'notice', null, null, null, null, null, null, null, 2, null);
+              showDialog('获取"' + oneKeyInputUrl + '"完毕，正在处理种子文件及图片。', 'notice', null, null, null, null, null, null, null, 1, null);
             };
 
 
@@ -433,7 +411,7 @@
         break;
       case 2:
         tempArr[1] = subs[$('.v2ss:visible').val()];
-        changeCidValue()
+        changeCidValue();
         break;
     }
     $('#subject').val('[' + tempArr.join('][') + ']');
@@ -464,10 +442,10 @@
 
     if (sub2arr[subs[$('.v0000').val()]].indexOf(tempArr[1]) > -1) {
       $('.v2ss:visible').val(subs2[subs[$('.v0000').val()]][tempArr[1]]);
-      changeCidValue()
+      changeCidValue();
     } else {
       $('.v2ss:visible').val(subs2[subs[$('.v0000').val()]]['其它']);
-      changeCidValue()
+      changeCidValue();
     }
 
   }
@@ -519,6 +497,33 @@
 
   function changeCidValue() {
     $('input[name="cid"]').val($('.v2ss:visible').val());
+  }
+
+  /**
+   * 图片上传成功后，获取图片aid及src
+   * @param imgUploadResult
+   */
+  function handleImgULResult(imgUploadResult) {
+    var curWinHref = window.location.href;
+    $.get('http://rs.xidian.edu.cn/forum.php?mod=ajax&action=imagelist&type=single&pid=0&fid='+ curWinHref.substring(curWinHref.indexOf('fid=')+4, curWinHref.indexOf('&specialextra')) +'&inajax=1', function (data) {
+      var objAidSrc = {};
+      var resXMLText = data.getElementsByTagName('root')[0].innerHTML;
+      var resHTMLText = resXMLText.slice(resXMLText.indexOf('<![CDATA[') + 9, resXMLText.indexOf(']]>'));
+      var tempDom = document.createElement('div');
+      tempDom.innerHTML = resHTMLText;
+      var imgTags = $('img', tempDom);
+      for (var i = 0; i < imgTags.length; i++) {
+        objAidSrc[(imgTags[i].getAttribute('id')).split('_')[1]] = imgTags[i].src;
+      }
+      var tempImgs = $('img', document.querySelector('#e_iframe').contentWindow.document.querySelector('body'));
+      for (var k = 0; k < tempImgs.length; k++) {
+        tempImgs[k].src = objAidSrc[imgUploadResult[k]];
+      }
+
+      //存放postMessage的数组，最后置空
+      imgObjJsonArr.length = 0;
+      showDialog('转载成功！', 'notice', null, null, null, null, null, null, null, null, null);
+    });
   }
 
 })();
