@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         RSOneKeyReSeed
 // @namespace    http://tampermonkey.net/
-// @version      1.2beta
+// @version      1.3beta
 // @description  try to take over the world!
 // @author       Vamgoon
 // @match        http://rs.xidian.edu.cn/forum.php?mod=post&action=newthread&fid=*&specialextra=bt&cid=*
 // @match        http://bt.byr.cn/*
+// @match        http://pt.nwsuaf6.edu.cn/details.php?id=*&hit=*
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -21,7 +22,7 @@
     case 'rs.xidian.edu.cn':
 
 
-      var supportDomainArr = ['rs.xidian.edu.cn', 'bt.byr.cn'];//支持的domain
+      var supportDomainArr = ['rs.xidian.edu.cn', 'bt.byr.cn', 'pt.nwsuaf6.edu.cn'];//支持的domain
       var myUid = $('input[name="uid"]').val();
       var myHash = $('input[name="hash"]').val();
       var imgObjJsonArr = [];
@@ -30,10 +31,10 @@
         var objJson = typeof ee.data === 'string' ? JSON.parse(ee.data) : ee.data;
         switch (objJson.type) {
           case 'text':
-            document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerHTML = objJson.content;
+            document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerHTML = objHandleText[objJson.from](objJson.content);
             break;
           case 'title':
-            document.querySelector('#subject').value = handleBYRTitle(objJson.content);
+            document.querySelector('#subject').value = objHandleTitle[objJson.from](objJson.content);
             analyzeSubjectValueRS();
             break;
           case 'torrent':
@@ -229,7 +230,7 @@
         if (!VGcheckUrl(oneKeyInputUrl.trim())) {//若输入的不是正确的网址则终止
           showDialog('输入网址有误','notice', null, null, null, null, null, null, null, null, null);
           return;
-        } else {
+        } else  {
           inputDoamin = VGgetDomain(oneKeyInputUrl);
         }
 
@@ -281,8 +282,8 @@
               }
               document.querySelector('#e_iframe').contentWindow.document.querySelector('body').innerHTML = oDiv.querySelector('td.t_f').innerHTML;
               var subjectFinalValue = oDiv.querySelector('title').innerText.split(' -')[0];
-              document.querySelector('#subject').value = subjectFinalValue.indexOf('一键转种脚本') === -1 ? subjectFinalValue + '[From:一键转种脚本V1.1Beta版]' : subjectFinalValue;
-
+              //document.querySelector('#subject').value = subjectFinalValue.indexOf('一键转种脚本') === -1 ? subjectFinalValue + '[From:一键转种脚本V1.2Beta版]' : subjectFinalValue;
+              document.querySelector('#subject').value = subjectFinalValue;
 
               analyzeSubjectValueRS();
 
@@ -296,27 +297,10 @@
             });
             break;
           case 'bt.byr.cn':
-            showDialog('正在获取"' + oneKeyInputUrl + '"中的内容', 'notice', null, null, null, null, null, null, null, 1, null);
-
-            //iframe跨域获取html
-            var ifr = document.createElement('iframe');
-            ifr.src = oneKeyInputUrl;
-            ifr.setAttribute('id', 'myIframe');
-            document.querySelector('#myNoneDisplayDiv').appendChild(ifr);
-
-            $('#myIframe')[0].onload = function () {
-              showDialog('获取"' + oneKeyInputUrl + '"完毕，正在处理种子文件及图片。', 'notice', null, null, null, null, null, null, null, 1, null);
-            };
-
-
+          case 'pt.nwsuaf6.edu.cn':
+            handleOnOneKeyBtn(oneKeyInputUrl);
             break;
         }
-
-
-
-
-
-
       };
       break;
     case 'bt.byr.cn':
@@ -333,6 +317,7 @@
           var hanledTextMsg = $('#kdescr').html();
           var objText = {
             type: 'text',
+            from: 'bt.byr.cn',
             content: hanledTextMsg
           };
           window.parent.postMessage(JSON.stringify(objText), 'http://rs.xidian.edu.cn');
@@ -341,6 +326,7 @@
           var subInfo = '[' + $("#type").text() +']' + '['+ $("#sec_type").text() +']' + $('title').text().slice(15, -23);
           var objSubInfo = {
             type: 'title',
+            from: 'bt.byr.cn',
             content: subInfo
           };
           window.parent.postMessage(JSON.stringify(objSubInfo), 'http://rs.xidian.edu.cn');
@@ -360,6 +346,7 @@
                 if (this.status == 200) {
                   sendImgObj = {
                     type: 'img',
+                    from: 'bt.byr.cn',
                     length: imgDomLen,
                     content: {
                       order: x,
@@ -377,6 +364,84 @@
         }
         `;
       document.body.appendChild(script02);
+      break;
+    case 'pt.nwsuaf6.edu.cn':
+
+      var scriptMt = document.createElement('script');
+      scriptMt.text = `
+        if (window.parent!==window) {
+          //删除不需要的内容
+          $('#ad_torrentdetail', '#kdescr').remove();
+          $('legend', '#kdescr').remove();
+          $('.codetop', '#kdescr').remove();
+
+
+
+          //获取文字信息，并将img标签标记为'tagimgisnecessary',跨域发送至主页。
+          var hanledTextMsg = $('#kdescr').html();
+          var objText = {
+            type: 'text',
+            from: 'pt.nwsuaf6.edu.cn',
+            content: hanledTextMsg
+          };
+          window.parent.postMessage(JSON.stringify(objText), 'http://rs.xidian.edu.cn');
+
+          //获取标题信息
+          var subInfoArr = $('#top+table>tbody>tr:eq(3)>td:eq(1)').text().replace(/\\s/gi, '').split(':');
+          var lv1sub = subInfoArr[1].slice(0, -3);
+          var lv2sub = subInfoArr[2].indexOf('-') ? subInfoArr[2].split('-')[1] : subInfoArr[2];
+          var subInfo = '['+ lv1sub +']' + '['+ lv2sub +']' + $('#top')[0].firstChild.nodeValue.trim();
+          var objSubInfo = {
+            type: 'title',
+            from: 'pt.nwsuaf6.edu.cn',
+            content: subInfo
+          };
+          window.parent.postMessage(JSON.stringify(objSubInfo), 'http://rs.xidian.edu.cn');
+
+          //获取图片信息
+          var imgDomInfos = $('img', '#kdescr');
+          var imgDomLen = imgDomInfos.length;
+          var myIndex = 0;
+          var sendImgObj = null;
+          for (; myIndex < imgDomLen; myIndex++) {
+            (function (x) {
+              var xhr = new XMLHttpRequest();
+              var tempImgUrlSrc = imgDomInfos[x].src;
+              var imgUrlSrc = null;
+
+              if (/http:*/gi.test(tempImgUrlSrc)) {
+                imgUrlSrc = tempImgUrlSrc;
+              } else {
+                var thumbIndex = imgDomInfos[x].src.indexOf('.thumb.jpg');
+                imgUrlSrc = 'http://pt.nwsuaf6.edu.cn/' + thumbIndex === -1 ? imgDomInfos[x].src : imgDomInfos[x].src.slice(0, thumbIndex);
+              }
+
+              console.log(imgUrlSrc);
+              xhr.open('GET', imgUrlSrc, true);
+              xhr.responseType = 'blob';
+              xhr.onload = function(e) {
+                if (this.status == 200) {
+                  sendImgObj = {
+                    type: 'img',
+                    from: 'pt.nwsuaf6.edu.cn',
+                    length: imgDomLen,
+                    content: {
+                      order: x,
+                      name: imgUrlSrc.slice(imgUrlSrc.lastIndexOf('/') + 1),
+                      blob: this.response
+                    }
+                  };
+                  window.parent.postMessage(sendImgObj, 'http://rs.xidian.edu.cn');
+                }
+              };
+              xhr.send();
+            })(myIndex)
+          }
+        }
+        `;
+      document.body.appendChild(scriptMt);
+      break;
+
       break;
   }
 
@@ -450,44 +515,79 @@
 
   }
 
-  function handleBYRTitle(BYRTitle) {
-    var subjectValue = BYRTitle.slice(1, -1);
-    var tempA = subjectValue.split('][');
+  //处理内容的函数对象
+  var objHandleText = {
+    'bt.byr.cn': function (BYRText) {
+      return BYRText;
+    },
+    'pt.nwsuaf6.edu.cn': function (MTText) {
+      var oDiv = document.createElement('div');
+      oDiv.innerHTML = MTText;
+      var codeAreasLen = $('.codemain');
+      var oldFieldSetsLen = $('fieldset', oDiv).length;
 
-    var tempArr = [];
-    for(var i = 0; i < tempA.length; i++){
-      if (tempArr.indexOf(tempA[i]) === -1 && tempA[i] !== '') {
-        tempArr.push(tempA[i]);
+      if (oldFieldSetsLen) {
+        for (var i = 0; i < oldFieldSetsLen; i++) {
+          $('fieldset:eq('+ i +')', oDiv).replaceWith('<div class="blockcode"><blockquote>'+ $('fieldset:eq('+ i +')', oDiv).text() +'</blockquote></div>');
+        }
       }
-    }
 
-    if (tempArr[0] === '游戏' && tempArr[1] === '视频') {
-      tempArr[0] = '其他';
-      return '[' + tempArr.join('][') + ']';
-    }
+      if (codeAreasLen) {
+        for (var j = 0; j < oldFieldSetsLen; j++) {
+          $('.codemain:eq('+ j +')', oDiv).replaceWith('<div class="blockcode"><blockquote>'+ $('.codemain:eq('+ j +')', oDiv).text() +'</blockquote></div>');
+        }
+      }
 
-    //修改一级标题，以符合睿思规范
-    if (tempArr[0] === '资料') {
-      tempArr[0] = '其他';
-      tempArr[1] = '文档';
-      return '[' + tempArr.join('][') + ']';
-    }
 
-    if (tempArr[0] === '纪录') {
-      tempArr[0] = '纪录片';
-      if (tempArr[1] === '连载') {
-        tempArr[1] = '单集';
+
+      return oDiv.innerHTML;
+    }
+  };
+
+  //处理标题的函数对象
+  var objHandleTitle = {
+    'bt.byr.cn': function (BYRTitle) {
+      var subjectValue = BYRTitle.slice(1, -1);
+      var tempA = subjectValue.split('][');
+
+      var tempArr = [];
+      for(var i = 0; i < tempA.length; i++){
+        if (tempArr.indexOf(tempA[i]) === -1 && tempA[i] !== '') {
+          tempArr.push(tempA[i]);
+        }
+      }
+
+      if (tempArr[0] === '游戏' && tempArr[1] === '视频') {
+        tempArr[0] = '其他';
+        return '[' + tempArr.join('][') + ']';
+      }
+
+      //修改一级标题，以符合睿思规范
+      if (tempArr[0] === '资料') {
+        tempArr[0] = '其他';
+        tempArr[1] = '文档';
+        return '[' + tempArr.join('][') + ']';
+      }
+
+      if (tempArr[0] === '纪录') {
+        tempArr[0] = '纪录片';
+        if (tempArr[1] === '连载') {
+          tempArr[1] = '单集';
+        }
+        return '[' + tempArr.join('][') + ']';
+      }
+
+      //修改二级标题，以符合睿思规范
+      var subs2 = {'电影': {'华语': '中国', '欧洲': '欧美', '北美': '欧美', '亚洲': '其它', '其他': '其它'}, '剧集': {'日韩': '其他'}, '动漫': {'周边': '动画', '其他': '动画'}, '音乐': {'大陆': '华语', '港台': '华语', '其他': '无损'}, '综艺': {'欧美': '其他'}, '游戏': {'主机': '其他', '移动': '其他', '掌机': 'PSP'}, '软件': {'Windows': '其他', 'OSX': '其他', 'Linux': '其他', 'Android': '其他', 'iOS': '其他'}, '体育': {'F1': '其他', '网球': '其他'}};
+      if (subs2[tempArr[0]].hasOwnProperty(tempArr[1])) {
+        tempArr[1] = subs2[tempArr[0]][tempArr[1]];
       }
       return '[' + tempArr.join('][') + ']';
+    },
+    'pt.nwsuaf6.edu.cn': function (MTTitle) {
+      return MTTitle;
     }
-
-    //修改二级标题，以符合睿思规范
-    var subs2 = {'电影': {'华语': '中国', '欧洲': '欧美', '北美': '欧美', '亚洲': '其它', '其他': '其它'}, '剧集': {'日韩': '其他'}, '动漫': {'周边': '动画', '其他': '动画'}, '音乐': {'大陆': '华语', '港台': '华语', '其他': '无损'}, '综艺': {'欧美': '其他'}, '游戏': {'主机': '其他', '移动': '其他', '掌机': 'PSP'}, '软件': {'Windows': '其他', 'OSX': '其他', 'Linux': '其他', 'Android': '其他', 'iOS': '其他'}, '体育': {'F1': '其他', '网球': '其他'}};
-    if (subs2[tempArr[0]].hasOwnProperty(tempArr[1])) {
-      tempArr[1] = subs2[tempArr[0]][tempArr[1]];
-    }
-    return '[' + tempArr.join('][') + ']';
-  }
+  };
 
   function changeFormAction() {
     var subs = {"1000": "13", "1200": "14", "1400": "15", "1600": "16", "1800": "17", "2000": "18", "2200": "19", "2400": "20", "2600": "537", "2800": "22", "3000": "214", "3200": "562"};
@@ -518,12 +618,29 @@
       var tempImgs = $('img', document.querySelector('#e_iframe').contentWindow.document.querySelector('body'));
       for (var k = 0; k < tempImgs.length; k++) {
         tempImgs[k].src = objAidSrc[imgUploadResult[k]];
+        // $('img:eq('+ k +')', document.querySelector('#e_iframe').contentWindow.document.querySelector('body'))
+        //   .replaceWith('<img src="'+ objAidSrc[imgUploadResult[k]] +'" border="0" aid="attachimg_'+ imgUploadResult[k] +'" alt>');
       }
 
       //存放postMessage的数组，最后置空
       imgObjJsonArr.length = 0;
       showDialog('转载成功！', 'notice', null, null, null, null, null, null, null, null, null);
     });
+  }
+
+
+  function handleOnOneKeyBtn(oneKeyInputUrl) {
+    showDialog('正在获取"' + oneKeyInputUrl + '"中的内容', 'notice', null, null, null, null, null, null, null, 1, null);
+
+    //iframe跨域获取html
+    var ifr = document.createElement('iframe');
+    ifr.src = oneKeyInputUrl;
+    ifr.setAttribute('id', 'myIframe');
+    document.querySelector('#myNoneDisplayDiv').appendChild(ifr);
+
+    $('#myIframe')[0].onload = function () {
+      showDialog('获取"' + oneKeyInputUrl + '"完毕，正在处理种子文件及图片。', 'notice', null, null, null, null, null, null, null, 1, null);
+    };
   }
 
 })();
