@@ -5,8 +5,8 @@
 // @description  try to take over the world!
 // @author       Vamgoon
 // @match        http://rs.xidian.edu.cn/forum.php?mod=post&action=newthread&fid=*&specialextra=bt&cid=*
-// @match        http://bt.byr.cn/*
-// @match        http://pt.nwsuaf6.edu.cn/details.php?id=*&hit=*
+// @match        *://bt.byr.cn/*
+// @match        *://pt.nwsuaf6.edu.cn/details.php?id=*&hit=*
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
